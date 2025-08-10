@@ -4,37 +4,37 @@ This document lists the remaining work, grouped by priority and scope. Check ite
 
 ## P0 — Bugs and polish
 
-- [ ] Per-window processing indicator
+- [x] Per-window processing indicator
   - [x] Hook exposes isProcessingFor(windowId)
-  - [ ] Audit all usages to ensure no component still uses a global `isProcessing`
-  - [ ] Add a small spinner glyph next to the Model selector while processing
-- [ ] Resizer stability
+  - [x] Audit all usages to ensure no component still uses a global `isProcessing`
+  - [x] Add a small spinner glyph next to the Model selector while processing
+- [x] Resizer stability
   - [x] Resize uses captured origin (startX/startY/startWidth/startHeight)
-  - [ ] Throttle `mousemove` handler to ~60fps (requestAnimationFrame) to smooth updates
-  - [ ] Enforce min/max window sizes and clamp to viewport
-  - [ ] Prevent resize from causing content reflow jitter (CSS tweaks)
-- [ ] Remove debug and temporary code
-  - [ ] Remove `console.log` from Window.jsx
-  - [ ] Remove try/catch render guard around Window (leave error boundaries for later)
-- [ ] Spawn position
+  - [x] Throttle `mousemove` handler to ~60fps (requestAnimationFrame) to smooth updates
+  - [x] Enforce min/max window sizes and clamp to viewport
+  - [x] Prevent resize from causing content reflow jitter (CSS tweaks)
+- [x] Remove debug and temporary code
+  - [x] Remove `console.log` from Window.jsx
+  - [x] Remove try/catch render guard around Window (leave error boundaries for later)
+- [x] Spawn position
   - [x] Fix off-screen spawn (use window width minus exact window width)
-  - [ ] Add cascade offset to avoid overlapping same position repeatedly
+  - [x] Add cascade offset to avoid overlapping same position repeatedly
 
 ## P0 — Connection creation (drag-to-connect)
 
-- [ ] Add visible connector nodes in each window title bar (left/right sides)
-- [ ] Start connection on mousedown of node; show “pending” line while dragging
-- [ ] Hit-test on mouseup to determine target window (center or target node)
-- [ ] Create connection via useConnectionManager.addConnection(fromId, toId)
-- [ ] Visual feedback
-  - [ ] Highlight potential target window on hover
-  - [ ] Color pending line differently (yellow)
+- [x] Add visible connector nodes in each window title bar (left/right sides)
+- [x] Start connection on mousedown of node; show “pending” line while dragging
+- [x] Hit-test on mouseup to determine target window (center or target node)
+- [x] Create connection via useConnectionManager.addConnection(fromId, toId)
+- [x] Visual feedback
+  - [x] Highlight potential target window on hover
+  - [x] Color pending line differently (yellow)
 - [ ] Connection deletion
   - [ ] Click a line to select; press Delete to remove
   - [ ] Or right-click context menu on line to remove
-- [ ] Edge cases
-  - [ ] Don’t allow duplicate connections or self-connections
-  - [ ] Handle windows moved/resized during drag
+- [x] Edge cases
+  - [x] Don’t allow duplicate connections or self-connections
+  - [x] Handle windows moved/resized during drag
 
 ## P1 — Propagation and Auto-Run
 

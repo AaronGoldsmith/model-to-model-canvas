@@ -33,7 +33,7 @@ function App() {
     isProcessingFor,
   } = useOllamaAPI();
 
-  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(false);
+  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(true);
   const [status, setStatus] = useState('Ready');
   const [availableModels, setAvailableModels] = useState(['llama3.1']);
   const [selectedModel, setSelectedModel] = useState('llama3.1');
@@ -41,24 +41,23 @@ function App() {
   const nextWindowId = useRef(1);
 
   const [windowContents, setWindowContents] = useState({
-    'initial-window': `Welcome to Cybernetic Canvas!
-
-This is a multi-window conversational AI interface.
-
-Features:
-- Create multiple windows
-- Connect windows to pass messages
-- Run conversations automatically or manually
-- Export conversations
-
-Click "New Window" to create more windows.`
+    'initial-window': `Welcome to Cybernetic Canvas!\n\nThis is a multi-window conversational AI interface.\n\nFeatures:\n- Create multiple windows\n- Connect windows to pass messages\n- Run conversations automatically or manually\n- Export conversations\n\nClick "New Window" to create more windows.`
   });
   const [windowHistories, setWindowHistories] = useState({
     'initial-window': []
   });
 
+  // Refs to avoid stale-closure issues after async operations
+  const connectionsRef = useRef(connections);
+  const windowsRef = useRef(windows);
+  const isAutoRunEnabledRef = useRef(isAutoRunEnabled);
+  useEffect(() => { connectionsRef.current = connections; }, [connections]);
+  useEffect(() => { windowsRef.current = windows; }, [windows]);
+  useEffect(() => { isAutoRunEnabledRef.current = isAutoRunEnabled; }, [isAutoRunEnabled]);
+
   // drag-to-connect state
-  const [connectionDrag, setConnectionDrag] = useState({ active: false, fromId: null, mouse: { x: 0, y: 0 } });
+  const [connectionDrag, setConnectionDrag] = useState({ active: false, fromId: null, x: 0, y: 0 });
+  const [hoveredTargetId, setHoveredTargetId] = useState(null);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -79,6 +78,45 @@ Click "New Window" to create more windows.`
 
     loadModels();
   }, []);
+
+  useEffect(() => {
+    // Mouse move/up for connection dragging across the app
+    const handleMove = (e) => {
+      if (!connectionDrag.active) return;
+      setConnectionDrag(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const winEl = target?.closest?.('[data-window-id]');
+      if (winEl) {
+        const wId = winEl.getAttribute('data-window-id');
+        setHoveredTargetId(wId && wId !== connectionDrag.fromId ? wId : null);
+      } else {
+        setHoveredTargetId(null);
+      }
+    };
+    const handleUp = (e) => {
+      if (!connectionDrag.active) return;
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const winEl = target?.closest?.('[data-window-id]');
+      if (winEl) {
+        const toId = winEl.getAttribute('data-window-id');
+        if (toId && toId !== connectionDrag.fromId) {
+          // prevent duplicates
+          const dup = connectionsRef.current.some(c => c.from === connectionDrag.fromId && c.to === toId);
+          if (!dup) addConnection(connectionDrag.fromId, toId);
+        }
+      }
+      setConnectionDrag({ active: false, fromId: null, x: 0, y: 0 });
+      setHoveredTargetId(null);
+    };
+    if (connectionDrag.active) {
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [connectionDrag.active, connectionDrag.fromId, addConnection]);
 
   const handleNewWindow = () => {
     const newWindowId = (Date.now() + nextWindowId.current).toString();
@@ -121,9 +159,10 @@ Click "New Window" to create more windows.`
   };
 
   const handleSendMessage = async (windowId, message) => {
-    const win = windows.find(w => w.id === windowId);
+    const win = windowsRef.current.find(w => w.id === windowId);
     if (!win) return;
 
+    // Append the user's message to the UI immediately
     const userMessage = `\n[user]: ${message}`;
     const newContent = (windowContents[windowId] || '') + userMessage;
     setWindowContents(prev => ({ ...prev, [windowId]: newContent }));
@@ -133,7 +172,8 @@ Click "New Window" to create more windows.`
     setWindowHistories(prev => ({ ...prev, [windowId]: newHistory }));
 
     try {
-      const response = await sendMessage(windowId, win.model, newHistory, message);
+      // Important: pass the history BEFORE adding the new user message to avoid duplication inside sendMessage
+      const response = await sendMessage(windowId, win.model, currentHistory, message);
       
       if (response.success) {
         const aiMessage = `\n[assistant]: ${response.finalOutput}`;
@@ -143,7 +183,7 @@ Click "New Window" to create more windows.`
         const finalHistory = [...newHistory, { role: 'assistant', content: response.finalOutput }];
         setWindowHistories(prev => ({ ...prev, [windowId]: finalHistory }));
 
-        if (isAutoRunEnabled) {
+        if (isAutoRunEnabledRef.current) {
           propagateData(windowId, response.finalOutput);
         }
       } else {
@@ -157,9 +197,11 @@ Click "New Window" to create more windows.`
   };
   
   const propagateData = async (fromWindowId, data) => {
-    connections.forEach(conn => {
+    const conns = connectionsRef.current;
+    const wins = windowsRef.current;
+    conns.forEach(conn => {
       if (conn.from === fromWindowId) {
-        const targetWindow = windows.find(w => w.id === conn.to);
+        const targetWindow = wins.find(w => w.id === conn.to);
         if (targetWindow) {
           processPipedMessageToWindow(conn.to, data, targetWindow.model);
         }
@@ -168,9 +210,48 @@ Click "New Window" to create more windows.`
   };
   
   const processPipedMessageToWindow = async (windowId, message, model) => {
-    // Simplified for clarity
-    handleSendMessage(windowId, message);
+    const targetWindow = windowsRef.current.find(w => w.id === windowId);
+    if (!targetWindow) return;
+
+    const currentHistory = windowHistories[windowId] || [];
+    const isDup = currentHistory.some(entry => entry.role === 'user' && entry.content === message);
+    if (isDup) return; // avoid duplicating the same piped input
+
+    // Append the piped message to the UI immediately
+    const pipedUserLine = `\n[user]: ${message}`;
+    const currentContent = windowContents[windowId] || '';
+    const updatedContent = currentContent + pipedUserLine;
+    setWindowContents(prev => ({ ...prev, [windowId]: updatedContent }));
+
+    const newHistory = [...currentHistory, { role: 'user', content: message }];
+    setWindowHistories(prev => ({ ...prev, [windowId]: newHistory }));
+
+    // Use the dedicated piped-message path to avoid duplication and keep per-window processing state
+    const response = await processPipedMessage(windowId, targetWindow.model, currentHistory, message);
+    if (response && response.success) {
+      const aiMessage = `\n[assistant]: ${response.finalOutput}`;
+      setWindowContents(prev => ({ ...prev, [windowId]: (prev[windowId] || '') + aiMessage }));
+      setWindowHistories(prev => ({
+        ...prev,
+        [windowId]: [...newHistory, { role: 'assistant', content: response.finalOutput }]
+      }));
+
+      // Propagate further if Auto-Run is enabled (enables chained piping A -> B -> C)
+      if (isAutoRunEnabledRef.current) {
+        propagateData(windowId, response.finalOutput);
+      }
+    } else if (response && response.error) {
+      const errorMessage = `\n[error]: ${response.error}`;
+      setWindowContents(prev => ({ ...prev, [windowId]: (prev[windowId] || '') + errorMessage }));
+    }
   };
+
+  const onConnectStart = (fromId, startX, startY) => {
+    setConnectionDrag({ active: true, fromId, x: startX, y: startY });
+  };
+
+  // Compute temp connection for canvas
+  const tempConnection = connectionDrag.active ? { from: connectionDrag.fromId, x: connectionDrag.x, y: connectionDrag.y } : null;
 
   return (
     <div className="app">
@@ -190,7 +271,7 @@ Click "New Window" to create more windows.`
       <ConnectorCanvas 
         connections={connections}
         windows={windows}
-        onConnect={addConnection}
+        tempConnection={tempConnection}
       />
       
       {windows.map(window => (
@@ -212,6 +293,8 @@ Click "New Window" to create more windows.`
           onModelChange={updateWindowModel}
           onSendMessage={handleSendMessage}
           isProcessing={isProcessingFor(window.id)}
+          onConnectStart={onConnectStart}
+          highlightAsTarget={window.id === hoveredTargetId}
         />
       ))}
       

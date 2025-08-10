@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export const useWindowManager = () => {
   const [windows, setWindows] = useState([
@@ -13,16 +13,33 @@ export const useWindowManager = () => {
     }
   ]);
 
+  // Cascade offset for spawning new windows to avoid overlap
+  const cascadeRef = useRef({ x: 30, y: 30, step: 30 });
+
   const addWindow = useCallback((windowData) => {
+    const defaultSize = { width: 400, height: 300 };
+    // Compute spawn within viewport, then apply cascade offset from the last window
+    const baseX = Math.max(0, Math.min(window.innerWidth - defaultSize.width, 60));
+    const baseY = Math.max(0, Math.min(window.innerHeight - defaultSize.height, 60));
+
+    // Get current cascade values then advance for next time
+    const { x: cx, y: cy, step } = cascadeRef.current;
+    const nextCascade = {
+      x: (cx + step) % Math.max(step * 10, window.innerWidth - defaultSize.width - 20),
+      y: (cy + step) % Math.max(step * 10, window.innerHeight - defaultSize.height - 20),
+      step,
+    };
+    cascadeRef.current = nextCascade;
+
+    const spawnX = Math.min(window.innerWidth - defaultSize.width, baseX + cx);
+    const spawnY = Math.min(window.innerHeight - defaultSize.height, baseY + cy);
+
     const newWindow = {
       id: windowData.id,
       title: windowData.title || 'New Window',
       content: windowData.content || '',
-      position: { 
-        x: Math.max(40, Math.random() * (window.innerWidth - 400)), 
-        y: Math.max(40, Math.random() * (window.innerHeight - 300)) 
-      },
-      size: { width: 400, height: 300 },
+      position: { x: Math.max(0, spawnX), y: Math.max(0, spawnY) },
+      size: defaultSize,
       model: windowData.model || 'llama3.1',
       isFocused: true
     };

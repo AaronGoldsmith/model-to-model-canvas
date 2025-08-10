@@ -1,14 +1,4 @@
 .window {
-.window.resizing, .window.dragging {
-  cursor: grabbing;
-  user-select: none;
-}
-
-/* Make the resize feel less jumpy by preventing text selection */
-.window .resize-handle {
-  user-select: none;
-}
-
   position: absolute;
   background: #2d2d2d;
   border: 2px solid #00ff00;
@@ -18,6 +8,22 @@
   color: #00ff00;
   font-family: 'Courier New', monospace;
   z-index: 10; /* ensure windows sit above connector canvas */
+}
+
+.window.resizing, .window.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Target highlight for potential connection target */
+.window.target-highlight {
+  border-color: #ffff00;
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.7);
+}
+
+/* Make the resize feel less jumpy by preventing text selection */
+.window .resize-handle {
+  user-select: none;
 }
 
 .window.focused {
@@ -38,6 +44,48 @@
 
 .title-text {
   font-weight: bold;
+}
+
+.title-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Connector nodes in title bar */
+.connector-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00ff00;
+  border: 1px solid #003300;
+}
+.connector-node.left {
+  margin-right: 8px;
+}
+.connector-node.right {
+  margin-left: 8px;
+}
+
+/* Tiny spinner glyph next to model selector when processing */
+.processing-indicator {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(0, 255, 0, 0.4);
+  border-top-color: #00ff00;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  opacity: 0;
+}
+.processing-indicator.visible {
+  opacity: 1;
+}
+.inline-spinner {
+  margin-left: 6px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .window-controls {

@@ -22,9 +22,9 @@ const ConnectorCanvas = ({ connections, windows, tempConnection }) => {
       if (fromWindow && toWindow) {
         drawConnection(
           ctx,
-          fromWindow.position.x + fromWindow.size.width / 2,
+          fromWindow.position.x + fromWindow.size.width,
           fromWindow.position.y + fromWindow.size.height / 2,
-          toWindow.position.x + toWindow.size.width / 2,
+          toWindow.position.x,
           toWindow.position.y + toWindow.size.height / 2,
           connection.status
         );
@@ -37,7 +37,7 @@ const ConnectorCanvas = ({ connections, windows, tempConnection }) => {
       if (fromWindow) {
         drawConnection(
           ctx,
-          fromWindow.position.x + fromWindow.size.width / 2,
+          fromWindow.position.x + fromWindow.size.width,
           fromWindow.position.y + fromWindow.size.height / 2,
           tempConnection.x,
           tempConnection.y,
@@ -60,15 +60,20 @@ const ConnectorCanvas = ({ connections, windows, tempConnection }) => {
       ctx.lineWidth = 1;
     }
     
+    // Draw a slight curve for aesthetics
+    const cp1x = x1 + (x2 - x1) * 0.3;
+    const cp1y = y1;
+    const cp2x = x1 + (x2 - x1) * 0.7;
+    const cp2y = y2;
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
     ctx.stroke();
     
-    // Draw arrowhead
+    // Draw arrowhead at end
     const angle = Math.atan2(y2 - y1, x2 - x1);
     const arrowSize = 10;
-    
     ctx.beginPath();
     ctx.moveTo(x2, y2);
     ctx.lineTo(

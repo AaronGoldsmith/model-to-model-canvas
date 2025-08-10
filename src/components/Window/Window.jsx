@@ -17,16 +17,20 @@ const Window = ({
   availableModels,
   onModelChange,
   onSendMessage,
-  isProcessing
+  isProcessing,
+  onConnectStart,
+  highlightAsTarget = false,
 }) => {
   const windowRef = useRef(null);
-  console.log(`Rendering window with id: ${id}, title: ${title}`);
-  try {
   const titleBarRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const resizeOriginRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
+  const rafMoveRef = useRef(null);
+  const rafResizeRef = useRef(null);
+  const pendingMoveRef = useRef(null);
+  const pendingResizeRef = useRef(null);
   const [inputValue, setInputValue] = useState('');
   const contentRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -63,20 +67,50 @@ const Window = ({
     }
   }, [content]);
 
+  const clampPositionToViewport = (x, y, width, height) => {
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    return { x: Math.min(Math.max(0, x), maxX), y: Math.min(Math.max(0, y), maxY) };
+  };
+
+  const clampSizeToViewport = (x, y, width, height, minW = 200, minH = 150) => {
+    const maxW = Math.max(minW, window.innerWidth - x);
+    const maxH = Math.max(minH, window.innerHeight - y);
+    return { width: Math.min(Math.max(minW, width), maxW), height: Math.min(Math.max(minH, height), maxH) };
+  };
+
   const handleTitleBarMouseDown = (e) => {
-    if (e.target.closest('.window-controls')) return;
+    if (e.target.closest('.window-controls') || e.target.closest('.connector-node')) return;
     setIsDragging(true);
     const rect = windowRef.current.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   useEffect(() => {
+    const onRafMove = () => {
+      if (!pendingMoveRef.current) { rafMoveRef.current = null; return; }
+      const { clientX, clientY } = pendingMoveRef.current;
+      const nx = clientX - dragOffset.x;
+      const ny = clientY - dragOffset.y;
+      const clamped = clampPositionToViewport(nx, ny, size.width, size.height);
+      onMove(id, clamped);
+      pendingMoveRef.current = null;
+      rafMoveRef.current = requestAnimationFrame(onRafMove);
+    };
+
     const handleMouseMove = (e) => {
-      if (isDragging) {
-        onMove(id, { x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+      if (!isDragging) return;
+      pendingMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (!rafMoveRef.current) {
+        rafMoveRef.current = requestAnimationFrame(onRafMove);
       }
     };
-    const handleMouseUp = () => setIsDragging(false);
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
+      rafMoveRef.current = null;
+      pendingMoveRef.current = null;
+    };
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -84,8 +118,11 @@ const Window = ({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
+      rafMoveRef.current = null;
+      pendingMoveRef.current = null;
     };
-  }, [isDragging, dragOffset, id, onMove]);
+  }, [isDragging, dragOffset, id, onMove, size.width, size.height]);
 
   const handleResizeMouseDown = (e) => {
     e.stopPropagation();
@@ -100,15 +137,31 @@ const Window = ({
   };
 
   useEffect(() => {
+    const onRafResize = () => {
+      if (!pendingResizeRef.current) { rafResizeRef.current = null; return; }
+      const { clientX, clientY } = pendingResizeRef.current;
+      const { startX, startY, startWidth, startHeight } = resizeOriginRef.current;
+      const newW = startWidth + (clientX - startX);
+      const newH = startHeight + (clientY - startY);
+      const { width, height } = clampSizeToViewport(position.x, position.y, newW, newH);
+      onResize(id, { width, height });
+      pendingResizeRef.current = null;
+      rafResizeRef.current = requestAnimationFrame(onRafResize);
+    };
+
     const handleMouseMove = (e) => {
-      if (isResizing) {
-        const { startX, startY, startWidth, startHeight } = resizeOriginRef.current;
-        const width = Math.max(200, startWidth + (e.clientX - startX));
-        const height = Math.max(150, startHeight + (e.clientY - startY));
-        onResize(id, { width, height });
+      if (!isResizing) return;
+      pendingResizeRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (!rafResizeRef.current) {
+        rafResizeRef.current = requestAnimationFrame(onRafResize);
       }
     };
-    const handleMouseUp = () => setIsResizing(false);
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      if (rafResizeRef.current) cancelAnimationFrame(rafResizeRef.current);
+      rafResizeRef.current = null;
+      pendingResizeRef.current = null;
+    };
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -116,8 +169,11 @@ const Window = ({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      if (rafResizeRef.current) cancelAnimationFrame(rafResizeRef.current);
+      rafResizeRef.current = null;
+      pendingResizeRef.current = null;
     };
-  }, [isResizing, id, onResize]);
+  }, [isResizing, id, onResize, position.x, position.y]);
 
   const handleInputKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -129,10 +185,19 @@ const Window = ({
     }
   };
 
+  const getConnectorCenter = (side) => {
+    if (!windowRef.current) return { x: 0, y: 0 };
+    const rect = windowRef.current.getBoundingClientRect();
+    const cx = side === 'left' ? rect.left : rect.right;
+    const cy = rect.top + rect.height / 2;
+    return { x: cx, y: cy };
+  };
+
   return (
     <div
       ref={windowRef}
-      className={`window ${isFocused ? 'focused' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
+      data-window-id={id}
+      className={`window ${isFocused ? 'focused' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${highlightAsTarget ? 'target-highlight' : ''}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -144,22 +209,24 @@ const Window = ({
         ref={titleBarRef}
         className="title-bar"
         onMouseDown={handleTitleBarMouseDown}
-        onMouseDownCapture={(e) => {
-          // if user holds Alt/Option while mouse-down on the title, start a connection
-          if (e.altKey && windowRef.current) {
-            const rect = windowRef.current.getBoundingClientRect();
-            const startX = rect.left + rect.width / 2;
-            const startY = rect.top + rect.height / 2;
-            if (typeof onStartConnect === 'function') {
-              onStartConnect(id, startX, startY);
-            }
-          }
-        }}
       >
+        <div className="connector-node left" title="Connect from" onMouseDown={(e) => {
+          e.stopPropagation();
+          const { x, y } = getConnectorCenter('left');
+          onConnectStart && onConnectStart(id, x, y);
+        }} />
         <span className="title-text">{title}</span>
-        <div className="window-controls">
-          <button className="control-btn" onClick={() => onClearContext(id)} title="Clear context">🗑️</button>
-          <button className="control-btn" onClick={() => onClose(id)} title="Close window">×</button>
+        <div className="title-right">
+          <div className={`processing-indicator ${isProcessing ? 'visible' : ''}`} title={isProcessing ? 'Processing...' : ''} />
+          <div className="window-controls">
+            <button className="control-btn" onClick={() => onClearContext(id)} title="Clear context">🗑️</button>
+            <button className="control-btn" onClick={() => onClose(id)} title="Close window">×</button>
+          </div>
+          <div className="connector-node right" title="Connect to" onMouseDown={(e) => {
+            e.stopPropagation();
+            const { x, y } = getConnectorCenter('right');
+            onConnectStart && onConnectStart(id, x, y);
+          }} />
         </div>
       </div>
       
@@ -169,6 +236,7 @@ const Window = ({
           <div className="custom-select-wrapper">
             <div className="custom-select-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
               {model}
+              {isProcessing && <span className="inline-spinner" aria-hidden>⏳</span>}
             </div>
             {isDropdownOpen && (
               <div className="custom-options">
@@ -207,10 +275,6 @@ const Window = ({
       <div className="resize-handle" onMouseDown={handleResizeMouseDown}>↘</div>
     </div>
   );
-  } catch (error) {
-    console.error(`Error rendering window ${id}:`, error);
-    return null; // Don't render the component if there's an error
-  }
 };
 
 export default Window;

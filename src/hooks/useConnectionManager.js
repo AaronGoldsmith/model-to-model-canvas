@@ -4,14 +4,18 @@ export const useConnectionManager = () => {
   const [connections, setConnections] = useState([]);
 
   const addConnection = useCallback((fromWindowId, toWindowId) => {
-    const newConnection = {
-      id: `${fromWindowId}-${toWindowId}`,
-      from: fromWindowId,
-      to: toWindowId,
-      status: 'pending'
-    };
-
-    setConnections(prevConnections => [...prevConnections, newConnection]);
+    if (fromWindowId === toWindowId) return; // prevent self-connection
+    setConnections(prev => {
+      // prevent duplicates
+      if (prev.some(c => c.from === fromWindowId && c.to === toWindowId)) return prev;
+      const newConnection = {
+        id: `${fromWindowId}-${toWindowId}`,
+        from: fromWindowId,
+        to: toWindowId,
+        status: 'idle'
+      };
+      return [...prev, newConnection];
+    });
   }, []);
 
   const removeConnection = useCallback((connectionId) => {

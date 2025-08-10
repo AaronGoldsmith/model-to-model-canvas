@@ -12,9 +12,7 @@ export const fetchOllamaModels = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const result = await response.json();
-    console.log('Ollama API response:', result);
     const models = result.models ? result.models.map(model => model.name) : [];
-    console.log('Extracted model names:', models);
     return models;
   } catch (error) {
     console.error('Failed to fetch Ollama models:', error);

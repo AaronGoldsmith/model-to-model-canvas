@@ -20,3 +20,26 @@
   padding: 0;
   text-align: left;
 }
+
+/*
+StatusBar
+*/
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 10px;
+  font-family: 'Courier New', monospace;
+  border-top: 1px solid #00ff00;
+  z-index: 2000;
+}
+.status-item .status-value {
+  font-weight: bold;
+}

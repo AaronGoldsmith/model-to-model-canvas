@@ -1,4 +1,4 @@
-# Cybernetic Canvas (React)
+# Cybernetic Canvas (Model to Model)
 
 A multi-window conversational AI canvas for experimenting with model-to-model workflows. Create multiple chat windows, wire them together, and pass messages between them.
 
@@ -11,6 +11,14 @@ npm run dev
 
 The app uses Vite and React. By default it attempts to discover models from an Ollama server running locally. You can still use the UI without Ollama to test multi-window UX.
 
+
+In a new window start the Ollama server, if it's not already running:
+```bash
+ ollama serve
+ ```
+
+
+![screenshot of chat windows wired together by a connector](image.png)
 ## Features
 
 - Multi-window chat interface
