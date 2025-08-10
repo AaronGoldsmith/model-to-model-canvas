@@ -30,7 +30,7 @@ function App() {
   const {
     sendMessage,
     processPipedMessage,
-    isProcessing,
+    isProcessingFor,
   } = useOllamaAPI();
 
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(false);
@@ -56,6 +56,9 @@ Click "New Window" to create more windows.`
   const [windowHistories, setWindowHistories] = useState({
     'initial-window': []
   });
+
+  // drag-to-connect state
+  const [connectionDrag, setConnectionDrag] = useState({ active: false, fromId: null, mouse: { x: 0, y: 0 } });
 
   useEffect(() => {
     const loadModels = async () => {
@@ -118,11 +121,10 @@ Click "New Window" to create more windows.`
   };
 
   const handleSendMessage = async (windowId, message) => {
-    const window = windows.find(w => w.id === windowId);
-    if (!window) return;
+    const win = windows.find(w => w.id === windowId);
+    if (!win) return;
 
-    const userMessage = `
-[user]: ${message}`;
+    const userMessage = `\n[user]: ${message}`;
     const newContent = (windowContents[windowId] || '') + userMessage;
     setWindowContents(prev => ({ ...prev, [windowId]: newContent }));
 
@@ -131,11 +133,10 @@ Click "New Window" to create more windows.`
     setWindowHistories(prev => ({ ...prev, [windowId]: newHistory }));
 
     try {
-      const response = await sendMessage(window.model, newHistory, message);
+      const response = await sendMessage(windowId, win.model, newHistory, message);
       
       if (response.success) {
-        const aiMessage = `
-[assistant]: ${response.finalOutput}`;
+        const aiMessage = `\n[assistant]: ${response.finalOutput}`;
         const updatedContent = newContent + aiMessage;
         setWindowContents(prev => ({ ...prev, [windowId]: updatedContent }));
 
@@ -146,13 +147,11 @@ Click "New Window" to create more windows.`
           propagateData(windowId, response.finalOutput);
         }
       } else {
-        const errorMessage = `
-[error]: ${response.error}`;
+        const errorMessage = `\n[error]: ${response.error}`;
         setWindowContents(prev => ({ ...prev, [windowId]: prev[windowId] + errorMessage }));
       }
     } catch (err) {
-      const errorMessage = `
-[error]: Failed to get response from model`;
+      const errorMessage = `\n[error]: Failed to get response from model`;
       setWindowContents(prev => ({ ...prev, [windowId]: prev[windowId] + errorMessage }));
     }
   };
@@ -212,7 +211,7 @@ Click "New Window" to create more windows.`
           onClearContext={handleClearContext}
           onModelChange={updateWindowModel}
           onSendMessage={handleSendMessage}
-          isProcessing={isProcessing}
+          isProcessing={isProcessingFor(window.id)}
         />
       ))}
       

@@ -8,7 +8,7 @@ export const useWindowManager = () => {
       content: '', // Content will be managed in App.jsx
       position: { x: 50, y: 50 },
       size: { width: 400, height: 300 },
-      model: 'llama3.1',
+      model: 'llama3.2',
       isFocused: true
     }
   ]);

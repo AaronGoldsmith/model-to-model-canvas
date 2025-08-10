@@ -144,6 +144,17 @@ const Window = ({
         ref={titleBarRef}
         className="title-bar"
         onMouseDown={handleTitleBarMouseDown}
+        onMouseDownCapture={(e) => {
+          // if user holds Alt/Option while mouse-down on the title, start a connection
+          if (e.altKey && windowRef.current) {
+            const rect = windowRef.current.getBoundingClientRect();
+            const startX = rect.left + rect.width / 2;
+            const startY = rect.top + rect.height / 2;
+            if (typeof onStartConnect === 'function') {
+              onStartConnect(id, startX, startY);
+            }
+          }
+        }}
       >
         <span className="title-text">{title}</span>
         <div className="window-controls">

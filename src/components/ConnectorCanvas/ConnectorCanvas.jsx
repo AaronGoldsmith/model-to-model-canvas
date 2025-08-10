@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import './ConnectorCanvas.css';
 
-const ConnectorCanvas = ({ connections, windows }) => {
+const ConnectorCanvas = ({ connections, windows, tempConnection }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -10,22 +10,15 @@ const ConnectorCanvas = ({ connections, windows }) => {
 
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    
-    // Set canvas size to match display size
     canvas.width = canvas.offsetWidth * dpr;
     canvas.height = canvas.offsetHeight * dpr;
-    
-    // Scale context to match device pixel ratio
     ctx.scale(dpr, dpr);
-    
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    
-    // Draw connections
+
+    // Draw permanent connections
     connections.forEach(connection => {
       const fromWindow = windows.find(w => w.id === connection.from);
       const toWindow = windows.find(w => w.id === connection.to);
-      
       if (fromWindow && toWindow) {
         drawConnection(
           ctx,
@@ -37,7 +30,22 @@ const ConnectorCanvas = ({ connections, windows }) => {
         );
       }
     });
-  }, [connections, windows]);
+
+    // Draw temporary connection while dragging
+    if (tempConnection) {
+      const fromWindow = windows.find(w => w.id === tempConnection.from);
+      if (fromWindow) {
+        drawConnection(
+          ctx,
+          fromWindow.position.x + fromWindow.size.width / 2,
+          fromWindow.position.y + fromWindow.size.height / 2,
+          tempConnection.x,
+          tempConnection.y,
+          'pending'
+        );
+      }
+    }
+  }, [connections, windows, tempConnection]);
 
   const drawConnection = (ctx, x1, y1, x2, y2, status) => {
     // Set line style based on status
