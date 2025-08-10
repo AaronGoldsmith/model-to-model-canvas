@@ -1,0 +1,22 @@
+/* App layout container */
+.app {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background-color: #000;
+  background-image:
+    linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Ensure root covers the viewport so absolutely-positioned windows aren't clipped */
+#root {
+  width: 100vw;
+  height: 100vh;
+  max-width: unset;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}

@@ -1,0 +1,164 @@
+.window {
+.window.resizing, .window.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Make the resize feel less jumpy by preventing text selection */
+.window .resize-handle {
+  user-select: none;
+}
+
+  position: absolute;
+  background: #2d2d2d;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  z-index: 10; /* ensure windows sit above connector canvas */
+}
+
+.window.focused {
+  z-index: 1000;
+  border-color: #ffff00;
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.7);
+}
+
+.title-bar {
+  background: #1a1a1a;
+  padding: 5px;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #00ff00;
+}
+
+.title-text {
+  font-weight: bold;
+}
+
+.window-controls {
+  display: flex;
+}
+
+.control-btn {
+  background: none;
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.control-btn:hover {
+  background: #00ff00;
+  color: #1a1a1a;
+}
+
+.window-content {
+  padding: 10px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-display {
+  flex-grow: 1;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  border: 1px solid #00ff00;
+  padding: 5px;
+  margin-bottom: 10px;
+  background: #1a1a1a;
+}
+
+.chat-input {
+  background: #1a1a1a;
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 5px;
+  font-family: 'Courier New', monospace;
+  resize: none;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  cursor: nwse-resize;
+  color: #00ff00;
+  text-align: right;
+  line-height: 15px;
+}
+
+.bot-message.blinking {
+  animation: blink-animation 1s infinite;
+}
+
+@keyframes blink-animation {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.model-selector {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.model-selector label {
+  margin-right: 10px;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+}
+
+.custom-select-trigger {
+  background: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid #00ff00;
+}
+
+.custom-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #444;
+  border: 1px solid #555;
+  border-radius: 4px;
+  margin-top: 5px;
+  z-index: 1001;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.custom-option {
+  padding: 8px 10px;
+  cursor: pointer;
+  color: white;
+}
+
+.custom-option:hover {
+  background: #555;
+}
+
+.custom-option.selected {
+  background: #007bff;
+  color: white;
+}

@@ -1,0 +1,87 @@
+.control-panel {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 20, 0, 0.9);
+  border: 1px solid #00ff00;
+  border-radius: 5px;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+  font-family: 'Courier New', monospace;
+}
+
+.control-group {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.control-group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 20px;
+  background: #00ff00;
+  margin-left: 10px;
+}
+
+.control-btn {
+  background: #333;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.control-btn:hover {
+  background: #555;
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+.control-btn.active {
+  background: #005500;
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+.model-selector-container {
+  position: relative;
+}
+
+.model-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #333;
+  border: 1px solid #00ff00;
+  border-radius: 3px;
+  margin-top: 5px;
+  z-index: 1001;
+  min-width: 150px;
+}
+
+.model-option {
+  padding: 8px 12px;
+  color: #00ff00;
+  cursor: pointer;
+  border-bottom: 1px solid #444;
+}
+
+.model-option:hover {
+  background: #555;
+}
+
+.model-option:last-child {
+  border-bottom: none;
+}
+
+.model-option.selected {
+  background: #005500;
+}
